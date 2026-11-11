@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Top 10 Net Gains to Cook County from Outside Illinois</title>
+
+        <!-- Load Leaflet, the animation library, the plugin, and the bonus data. -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/@tweenjs/tween.js@18.6.4/dist/tween.umd.js"></script>
+        <script src="CanvasFlowmapLayer.js"></script>
+        <script src="cook-bonus.js"></script>
+
+        <style>
+            html, body { height: 100%; margin: 0; padding: 0; }
+            #map { height: 100%; }
+
+            .title, .legend {
+                padding: 6px 8px;
+                font: 14px/20px Arial, Helvetica, sans-serif;
+                background: rgba(255, 255, 255, 0.9);
+                box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+                border-radius: 5px;
+            }
+
+            .title { max-width: calc(100vw - 90px); }
+            .title h3 { margin: 6px 0; }
+            .title p { margin: 0 0 4px; font-size: 12px; }
+            .legend { max-width: calc(100vw - 40px); }
+
+            .legend .line {
+                display: inline-block;
+                width: 30px;
+                margin-right: 6px;
+                vertical-align: middle;
+            }
+
+            .legend .dot {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                margin-right: 6px;
+                border-radius: 50%;
+                vertical-align: middle;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map" aria-label="Top ten net migration gains to Cook County from counties outside Illinois"></div>
+
+        <script>
+            // Start with a view that includes all ten origin counties.
+            var map = L.map('map', {
+                center: [39.23, -97.47],
+                zoom: 4
+            });
+
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+                minZoom: 3,
+                maxZoom: 11
+            }).addTo(map);
+
+            // Net_B2A is inflow minus outflow. Positive values are gains to Cook.
+            // All ten origins are outside Illinois. The animation moves into Cook.
+            var flowLayer = L.canvasFlowmapLayer(data, {
+                originAndDestinationFieldIds: {
+                    originUniqueIdField: 'GEOID_B',
+                    originGeometry: { x: 'B_lon', y: 'B_lat' },
+                    destinationUniqueIdField: 'GEOID_A',
+                    destinationGeometry: { x: 'A_lon', y: 'A_lat' }
+                },
+                canvasBezierStyle: {
+                    type: 'classBreaks',
+                    field: 'Net_B2A',
+                    classBreakInfos: [{
+                        classMinValue: 400,
+                        classMaxValue: 499,
+                        symbol: { strokeStyle: '#005A32', lineWidth: 8, lineCap: 'round' }
+                    }, {
+                        classMinValue: 300,
+                        classMaxValue: 399,
+                        symbol: { strokeStyle: '#238B45', lineWidth: 6, lineCap: 'round' }
+                    }, {
+                        classMinValue: 200,
+                        classMaxValue: 299,
+                        symbol: { strokeStyle: '#41AB5D', lineWidth: 3.5, lineCap: 'round' }
+                    }]
+                },
+                // Use green for the moving parts of the flow lines too.
+                animatedCanvasBezierStyle: {
+                    type: 'simple',
+                    symbol: {
+                        strokeStyle: '#005A32',
+                        lineWidth: 1.5,
+                        lineDashOffsetSize: 4,
+                        lineCap: 'round'
+                    }
+                },
+                onEachFeature: function (feature, layer) {
+                    var p = feature.properties;
+                    // County B is an origin. County A is Cook County.
+                    var atB = feature.geometry.coordinates[0] === p.B_lon &&
+                        feature.geometry.coordinates[1] === p.B_lat;
+                    var label;
+                    if (atB) {
+                        label = p.County_B + ', ' + p.State_B + '<br>' +
+                            'Net gain to Cook County: ' + p.Net_B2A.toLocaleString() + ' people';
+                    } else {
+                        label = p.County_A + ', ' + p.State_A + ' (destination)';
+                    }
+                    layer.bindTooltip(label);
+                },
+                pathDisplayMode: 'all',
+                animationStarted: true,
+                animationEasingFamily: 'Cubic',
+                animationEasingType: 'In',
+                animationDuration: 2000
+            }).addTo(map);
+
+            // Add a title control pane.
+            var title = L.control({ position: 'topright' });
+            title.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'title');
+                div.innerHTML = '<h3>Top 10 Net Gains to Cook County</h3>' +
+                    '<p>From counties outside Illinois &middot; ACS 2016&ndash;2020</p>';
+                return div;
+            };
+            title.addTo(map);
+
+            // Match the legend to the three classes above.
+            var legend = L.control({ position: 'bottomright' });
+            legend.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'legend');
+                div.innerHTML = '<b>Net gain to Cook County (people)</b><br>' +
+                    'Inflow minus outflow<br>' +
+                    '<i class="line" style="height:8px; background:#005A32"></i>400 to 499<br>' +
+                    '<i class="line" style="height:6px; background:#238B45"></i>300 to 399<br>' +
+                    '<i class="line" style="height:3.5px; background:#41AB5D"></i>200 to 299<br>' +
+                    '<i class="dot" style="background:rgb(195,255,62); border:1px solid #555"></i>Origin outside Illinois<br>' +
+                    '<i class="dot" style="background:rgb(17,142,170)"></i>Destination (Cook County)<br>' +
+                    '<small>Flows move toward Cook County.</small>';
+                return div;
+            };
+            legend.addTo(map);
+
+            // Keep all origins and Cook County visible, including on small screens.
+            map.fitBounds([[30.3346, -120.998], [43.6249, -72.7329]], {
+                paddingTopLeft: [55, 110],
+                paddingBottomRight: [55, 245],
+                maxZoom: 5
+            });
+        </script>
+    </body>
+</html>

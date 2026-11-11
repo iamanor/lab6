@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Top 10 Outflows from Cook County, Illinois</title>
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+            crossorigin="">
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+        <!-- Load the animation library before the local flow-map plugin. -->
+        <script src="https://unpkg.com/@tweenjs/tween.js@18.6.4/dist/tween.umd.js"></script>
+        <script src="CanvasFlowmapLayer.js"></script>
+        <script src="cook.js"></script>
+
+        <style>
+            html, body { height: 100%; margin: 0; padding: 0; }
+            #map { height: 100%; width: 100%; }
+
+            .title {
+                padding: 6px 8px;
+                font: 14px/16px Arial, Helvetica, sans-serif;
+                background: white;
+                background: rgba(255, 255, 255, 0.8);
+                box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+                border-radius: 5px;
+                max-width: calc(100vw - 90px);
+            }
+
+            .title h3 { margin: 6px 0; line-height: 1.3; }
+            .title p { margin: 0 0 4px; font-size: 12px; }
+
+            .views {
+                padding: 8px;
+                background: rgba(255, 255, 255, 0.9);
+                border-radius: 5px;
+                box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+                font: 12px/1.4 Arial, Helvetica, sans-serif;
+                max-width: 240px;
+            }
+
+            .views button {
+                padding: 5px 8px;
+                margin: 0 4px 6px 0;
+                background: white;
+                border: 1px solid #999;
+                border-radius: 3px;
+                cursor: pointer;
+            }
+
+            .views p { margin: 0; }
+
+            .legend {
+                padding: 6px 8px;
+                font: 14px/20px Arial, Helvetica, sans-serif;
+                background: rgba(255, 255, 255, 0.8);
+                box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+                border-radius: 5px;
+                max-width: calc(100vw - 40px);
+            }
+
+            .legend .line {
+                display: inline-block;
+                width: 30px;
+                margin-right: 6px;
+                vertical-align: middle;
+            }
+
+            .legend .dot {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                margin-right: 6px;
+                vertical-align: middle;
+            }
+
+            @media (max-width: 600px) {
+                .leaflet-bottom.leaflet-left { bottom: 220px; }
+                .views p { display: none; }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map" aria-label="Top 10 gross migration outflows from Cook County, Illinois"></div>
+
+        <script>
+            // Begin with a fullscreen view of the contiguous United States.
+            var map = L.map('map', {
+                center: [39.23, -97.47],
+                zoom: 4
+            });
+
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+                maxZoom: 11,
+                minZoom: 3
+            }).addTo(map);
+
+            // cook.js contains the ten highest Flow_A2B values, sorted descending.
+            // Cook County (County A) is the origin; County B is the destination.
+            var flowLayer = L.canvasFlowmapLayer(data, {
+                originAndDestinationFieldIds: {
+                    originUniqueIdField: 'GEOID_A',
+                    originGeometry: {
+                        x: 'A_lon',
+                        y: 'A_lat'
+                    },
+                    destinationUniqueIdField: 'GEOID_B',
+                    destinationGeometry: {
+                        x: 'B_lon',
+                        y: 'B_lat'
+                    }
+                },
+                // Graduated colors and widths represent gross outflow estimates.
+                canvasBezierStyle: {
+                    type: 'classBreaks',
+                    field: 'Flow_A2B',
+                    classBreakInfos: [{
+                        classMinValue: 12000,
+                        classMaxValue: 21050,
+                        symbol: {
+                            strokeStyle: '#7A003E',
+                            lineWidth: 8,
+                            lineCap: 'round'
+                        }
+                    }, {
+                        classMinValue: 8000,
+                        classMaxValue: 11999,
+                        symbol: {
+                            strokeStyle: '#AD0755',
+                            lineWidth: 6,
+                            lineCap: 'round'
+                        }
+                    }, {
+                        classMinValue: 4000,
+                        classMaxValue: 7999,
+                        symbol: {
+                            strokeStyle: '#CA2070',
+                            lineWidth: 4,
+                            lineCap: 'round'
+                        }
+                    }, {
+                        classMinValue: 2000,
+                        classMaxValue: 3999,
+                        symbol: {
+                            strokeStyle: '#E16A9C',
+                            lineWidth: 2.5,
+                            lineCap: 'round'
+                        }
+                    }]
+                },
+                onEachFeature: function (feature, layer) {
+                    var p = feature.properties;
+                    var atB = feature.geometry.coordinates[0] === p.B_lon &&
+                        feature.geometry.coordinates[1] === p.B_lat;
+                    var name = atB ? p.County_B + ', ' + p.State_B :
+                        p.County_A + ', ' + p.State_A;
+                    layer.bindTooltip(name);
+                },
+                pathDisplayMode: 'all',
+                animationStarted: true,
+                animationEasingFamily: 'Cubic',
+                animationEasingType: 'In',
+                animationDuration: 2000
+            }).addTo(map);
+
+            // Add the map title as a Leaflet control in the top-right corner.
+            var title = L.control({ position: 'topright' });
+
+            title.onAdd = function (map) {
+                this._div = L.DomUtil.create('div', 'title');
+                this._div.innerHTML = '<h3>Top 10 Outflows from Cook County, Illinois</h3>' +
+                    '<p>Gross county-to-county migration &middot; ACS 2016&ndash;2020</p>';
+                return this._div;
+            };
+
+            title.addTo(map);
+
+            // Explain the flow-line classes and the default county markers.
+            var legend = L.control({ position: 'bottomright' });
+
+            legend.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'legend');
+                div.innerHTML = '<b>Gross outflow from Cook County</b><br>' +
+                    'Estimated people moving out<br>' +
+                    '<i class="line" style="height:8px; background:#7A003E"></i>12,000 to 21,050<br>' +
+                    '<i class="line" style="height:6px; background:#AD0755"></i>8,000 to 11,999<br>' +
+                    '<i class="line" style="height:4px; background:#CA2070"></i>4,000 to 7,999<br>' +
+                    '<i class="line" style="height:2.5px; background:#E16A9C"></i>2,000 to 3,999<br>' +
+                    '<i class="dot" style="background:rgb(195,255,62); border:1px solid #555"></i>Origin (Cook County)<br>' +
+                    '<i class="dot" style="background:rgb(17,142,170)"></i>Destination county';
+                return div;
+            };
+
+            legend.addTo(map);
+
+            // Keep nearby county flows easy to inspect without losing the overview.
+            var views = L.control({ position: 'bottomleft' });
+            var countyPoints = [[41.84, -87.8169]];
+            data.features.filter(function (f) {
+                return !f.properties.isOrigin;
+            }).forEach(function (f) {
+                countyPoints.push([f.properties.B_lat, f.properties.B_lon]);
+            });
+            var allFlowBounds = L.latLngBounds(countyPoints);
+
+            function showAllFlows() {
+                map.fitBounds(allFlowBounds, {
+                    paddingTopLeft: [55, 100],
+                    paddingBottomRight: [55, 215],
+                    maxZoom: 5,
+                    animate: false
+                });
+            }
+
+            views.onAdd = function () {
+                var div = L.DomUtil.create('div', 'views');
+                div.innerHTML = '<button type="button" class="all-flows">All 10 flows</button>' +
+                    '<button type="button" class="chicago-area">Chicago area</button>' +
+                    '<p>Nearby county flows overlap at this scale. Zoom to the Chicago area to inspect them.</p>';
+                L.DomEvent.disableClickPropagation(div);
+                L.DomEvent.disableScrollPropagation(div);
+                div.querySelector('.all-flows').onclick = showAllFlows;
+                div.querySelector('.chicago-area').onclick = function () {
+                    map.fitBounds([[41.40, -88.55], [42.45, -87.30]], {
+                        paddingTopLeft: [55, 100],
+                        paddingBottomRight: [55, 215],
+                        maxZoom: 9,
+                        animate: false
+                    });
+                };
+                return div;
+            };
+
+            views.addTo(map);
+            showAllFlows();
+        </script>
+    </body>
+</html>

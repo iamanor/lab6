@@ -1,0 +1,74 @@
+Lab 6 - Extra Credit
+
+QUESTION
+Which counties outside Illinois contribute the largest net migration gains
+to Cook County?
+
+DISCOVERED ANSWER
+Jefferson County, Kentucky, contributes the largest estimated net gain to
+Cook County: 433 people. Its estimated inflow to Cook County is 637 people,
+compared with an outflow of 204 (637 - 204 = 433).
+
+The 10 selected counties, ranked by net gain to Cook County, are:
+
+Rank  County and state                   Inflow   Outflow   Net gain
+ 1    Jefferson County, Kentucky            637       204        433
+ 2    St. Joseph County, Indiana            792       433        359
+ 3    Baltimore City, Maryland              534       188        346
+ 4    Prince George's County, Maryland      411        81        330
+ 5    Hartford County, Connecticut          335        38        297
+ 6    Travis County, Texas                  880       629        251
+ 7    New Haven County, Connecticut         420       190        230
+ 8    Canyon County, Idaho                  225         0        225
+ 9    El Paso County, Texas                 308        90        218
+10    Stanislaus County, California         207         0        207
+
+These counties span seven states. Together they account for an estimated
+inflow of 4,749 people and outflow of 1,853, giving Cook County a net gain
+of 2,896 people across the 10 selected county pairs.
+
+The largest net gain is different from the largest inflow: Travis County
+has the largest inflow among these selected counties (880), but its 629
+people moving in the opposite direction reduce the net gain to 251.
+
+TIE AT TENTH PLACE
+York County, South Carolina, also has a net gain of 207 (237 inflow minus
+30 outflow). To keep exactly 10 flows, equal net gains are ordered by county
+GEOID, smallest first. Stanislaus County (06099) is selected ahead of York
+County (45091); the equal estimates do not establish a meaningful difference
+between their net gains.
+
+METHOD
+1. Use the same Cook County migration data as the required map, including
+   the migration values restored from the original Census table.
+2. Keep counties where State_B is not Illinois and Net_B2A is greater than zero.
+3. Sort Net_B2A from largest to smallest, breaking ties by county GEOID.
+4. Select the first 10 counties.
+5. Map from County B into Cook County (County A).
+
+Net gain = Net_B2A = Flow_B2A - Flow_A2B (inflow minus outflow).
+The figures are ACS 2016-2020 survey estimates. The combined net gain above
+applies only to the selected county pairs, not Cook County's overall migration
+balance or total population change. These are estimates, not exact counts.
+
+MAP
+Open bonus.html. The title is a Leaflet control pane. Hover over each origin
+circle to see its county, state, and estimated net gain to Cook County. The
+Cook County circle is labeled as the destination. The green lines animate
+into Cook County; their widths and shades show the size of the net gains.
+
+Legend classes match the map:
+  400-499 people: 8px, #005A32
+  300-399 people: 6px, #238B45
+  200-299 people: 3.5px, #41AB5D
+
+FILES
+Keep bonus.html, cook-bonus.js, and CanvasFlowmapLayer.js together.
+Internet access is needed for the hosted Leaflet/Tween libraries and basemap.
+The selected data is also saved as ../cook-bonus.geojson. Everything remains local.
+
+SOURCE
+U.S. Census Bureau, County-to-County Migration Flows: 2016-2020 ACS.
+https://www.census.gov/data/tables/2020/demo/geographic-mobility/county-to-county-migration-2016-2020.html
+Original table downloaded locally: ../source-data/Net_Gross_US.txt
+County coordinates and names: ../source-data/Lab6_data/Cook_Migration.shp
